@@ -1,3 +1,4 @@
+#setup
 package "build-essential" do
   action :install
 end
@@ -20,13 +21,6 @@ directory node[:redis][:data_dir] do
   action :create
 end
 
-directory "#{node[:redis][:data_dir]}/#{ node[:redis][:port]}" do
-  owner node[:redis][:user]
-  mode 0755
-  action :create
-end
-
-
 directory node[:redis][:log_dir] do
   owner node[:redis][:user]
   mode 0755
@@ -48,30 +42,47 @@ bash "compile_redis_source" do
   creates "/usr/local/bin/redis-server"
 end
 
-service "redis" do
-  provider Chef::Provider::Service::Upstart
-  subscribes :restart, resources(:bash => "compile_redis_source")
-  supports :restart => true, :start => true, :stop => true
-end
+#per port configuration
 
-template "redis.conf" do
-  path "#{node[:redis][:dir]}/#{node[:redis][:port]}.conf"
-  source "redis.conf.erb"
-  owner "root"
-  group "root"
-  mode "0644"
-  notifies :restart, resources(:service => "redis")
-end
+node[:redis][:ports].each do |port|
+  
+  directory "#{node[:redis][:data_dir]}/#{port}" do
+    owner node[:redis][:user]
+    mode 0755
+    action :create
+  end
 
-template "redis.upstart.conf" do
-  path "/etc/init/redis.conf"
-  source "redis.upstart.conf.erb"
-  owner "root"
-  group "root"
-  mode "0644"
-  notifies :restart, resources(:service => "redis")
-end
+  service "redis_#{port}" do
+    provider Chef::Provider::Service::Upstart
+    subscribes :restart, resources(:bash => "compile_redis_source")
+    supports :restart => true, :start => true, :stop => true
+  end 
+    
+  template "redis.conf" do
+    path "#{node[:redis][:dir]}/#{port}.conf"
+    source "redis.conf.erb"
+    owner "root"
+    group "root"
+    mode "0644"
+    variables({
+     :redis_port => port
+    })
+    notifies :restart, resources(:service => "redis_#{port}")
+  end
 
-service "redis" do
-  action [:enable, :start]
+  template "redis.upstart.conf" do
+    path "/etc/init/redis_#{port}.conf"
+    source "redis.upstart.conf.erb"
+    owner "root"
+    group "root"
+    mode "0644"
+    variables({
+     :redis_port => port
+    })
+    notifies :restart, resources(:service => "redis_#{port}")
+  end
+
+  service "redis_#{port}" do
+    action [:enable, :start]
+  end
 end

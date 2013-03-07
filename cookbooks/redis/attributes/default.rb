@@ -4,6 +4,6 @@ default[:redis][:log_dir]   = "/var/log/redis"
 # one of: debug, verbose, notice, warning
 default[:redis][:loglevel]  = "notice"
 default[:redis][:user]      = "redis"
-default[:redis][:port]      = 6379
+default[:redis][:ports]     = [6379,7379]
 default[:redis][:bind]      = "127.0.0.1"
 default[:redis][:version]   = "2.6.10"

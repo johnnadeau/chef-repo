@@ -1,5 +1,5 @@
 #!upstart
-description "Redis Server"
+description "Redis Server - <%= @redis_port %>"
 
 env USER=<%= node[:redis][:user] %>
 
@@ -9,5 +9,5 @@ stop on shutdown
 respawn
 
 exec sudo -u $USER sh -c "/usr/local/bin/redis-server \
-  /etc/redis/<%= node[:redis][:port] %>.conf 2>&1 >> \
-  <%= node[:redis][:log_dir] %>/<%= node[:redis][:port] %>.log"
+  /etc/redis/<%= @redis_port %>.conf 2>&1 >> \
+  <%= node[:redis][:log_dir] %>/<%= @redis_port %>.log"
